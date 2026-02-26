@@ -19,7 +19,6 @@ app.post("/identify", async (req, res) => {
          return res.status(400).json({ error: "Either email or phoneNumber must be provided" }); 
         }
 
-    // 1️⃣ Find any contacts with same email OR phone
     const existingContacts = await prisma.contact.findMany({
       where: {
         OR: [
@@ -32,7 +31,6 @@ app.post("/identify", async (req, res) => {
       }
     });
 
-    // 2️⃣ If no contact exists → create PRIMARY
     if (existingContacts.length === 0) {
       const newContact = await prisma.contact.create({
         data: {
@@ -52,21 +50,18 @@ app.post("/identify", async (req, res) => {
       });
     }
 
-    // 3️⃣ Determine primary contact
     let primaryContact =
       existingContacts.find(c => c.linkPrecedence === "primary") ||
       await prisma.contact.findUnique({
         where: { id: existingContacts[0].linkedId! }
       });
 
-    // 4️⃣ Check if incoming info is new
     const allEmails = existingContacts.map(c => c.email);
     const allPhones = existingContacts.map(c => c.phoneNumber);
 
     const isNewEmail = email && !allEmails.includes(email);
     const isNewPhone = phoneNumber && !allPhones.includes(phoneNumber);
 
-    // 5️⃣ If new info → create SECONDARY contact
     if (isNewEmail || isNewPhone) {
       await prisma.contact.create({
         data: {
@@ -78,7 +73,6 @@ app.post("/identify", async (req, res) => {
       });
     }
 
-    // 6️⃣ Fetch all linked contacts
     const linkedContacts = await prisma.contact.findMany({
       where: {
         OR: [
@@ -91,7 +85,6 @@ app.post("/identify", async (req, res) => {
       }
     });
 
-    // 7️⃣ Prepare response data
     const emails = [
       ...new Set(linkedContacts.map(c => c.email).filter(Boolean))
     ];
@@ -104,7 +97,6 @@ app.post("/identify", async (req, res) => {
       .filter(c => c.linkPrecedence === "secondary")
       .map(c => c.id);
 
-    // 8️⃣ Final response
     res.json({
       contact: {
         primaryContactId: primaryContact!.id,
@@ -120,6 +112,8 @@ app.post("/identify", async (req, res) => {
   }
 });
 
-app.listen(3000, () => {
-  console.log("Server started on port 3000");
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`Server started on port ${PORT}`);
 });
