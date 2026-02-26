@@ -10,5 +10,6 @@
     "outDir": "./dist"
   },
   "include": ["src"]
+  
 }
 
